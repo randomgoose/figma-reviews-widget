@@ -143,7 +143,8 @@ function Widget() {
 
   return (
     <AutoLayout name="Review" direction="vertical" padding={24} fill={"#fff"} spacing={12} width={"hug-contents"} cornerRadius={24}>
-      {displayTitle ? <Input name="Title Input" value={title} onTextEditEnd={(e) => setTitle(e.characters)} placeholder={"Add Title..."} fontSize={32} inputFrameProps={{ name: "Input Container" }} /> : null}
+      {displayTitle ?
+        <Input name="Title Input" value={title} width={"fill-parent"} onTextEditEnd={(e) => setTitle(e.characters)} placeholder={"Add Title..."} fontSize={32} lineHeight={48} fill={"#333"} inputFrameProps={{ name: "Input Container" }} /> : null}
       {/* <Rate /> */}
       <AutoLayout name="Overview" width={"hug-contents"} spacing={24}>
         <AutoLayout name="Overall Band" verticalAlignItems="center" spacing={4} fill={"#fff"} padding={8} width={"hug-contents"}>
