@@ -1,0 +1,14 @@
+{
+  "name": "Reviews",
+  "id": "1188050027912520640",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "editorType": [
+    "figma",
+    "figjam"
+  ],
+  "containsWidget": true,
+  "widgetApi": "1.0.0",
+  "ui": "ui.html",
+  "permissions": ["currentuser"]
+}
