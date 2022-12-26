@@ -200,7 +200,7 @@ function Widget() {
           <AutoLayout width={"fill-parent"} spacing={4} verticalAlignItems={"center"} overflow={"visible"}>
             {reviews.length > 0 ? <Text fontWeight={"bold"}>All reviews ({reviews.length})</Text> : <Text name="Empty" fill={"#777"} width={"fill-parent"}>Click the button to add a review.</Text>}
 
-            <Sorter value={sortBy} onChange={(value: Sort) => setSortBy(value)} />
+            {/* <Sorter value={sortBy} onChange={(value: Sort) => setSortBy(value)} /> */}
           </AutoLayout>
 
           <AutoLayout
