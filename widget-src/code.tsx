@@ -1,8 +1,8 @@
 // This widget will open an Iframe window with buttons to show a toast message and close the window.
 
 const { widget } = figma
-const { useEffect, Text, AutoLayout, useSyncedState, SVG, Image, Rectangle, Line, Span, Input, usePropertyMenu } = widget
-import { download, plus, star, star_fill } from "./icons"
+const { useEffect, Text, AutoLayout, useSyncedState, SVG, Image, Rectangle, Line, Span, Input, usePropertyMenu, Frame } = widget
+import { download, member, plus, star, star_fill } from "./icons"
 import { Review as ReviewProps } from "./types"
 
 const BAR_LENGTH = 320;
@@ -15,10 +15,16 @@ function Rate({ rate }: { rate: number }) {
   </AutoLayout>
 }
 
-function Review({ user, text, rate, timestamp, id, edited }: ReviewProps) {
+function Review({ user, text, rate, timestamp, id, edited, anonymous }: ReviewProps) {
   const d = new Date(timestamp);
   const date = d.toLocaleDateString();
   const time = d.toLocaleTimeString()
+
+  const avatar = anonymous ?
+    <AutoLayout name="Anonymous Avatar" width={32} height={32} fill={"#777"} verticalAlignItems={"center"} horizontalAlignItems={"center"} cornerRadius={100}>
+      <SVG src={member} />
+    </AutoLayout>
+    : <Image name="Avatar" src={user.photoUrl || ""} width={32} height={32} cornerRadius={100} />
 
   return <AutoLayout
     name="Review"
@@ -28,14 +34,14 @@ function Review({ user, text, rate, timestamp, id, edited }: ReviewProps) {
     onClick={() => new Promise(() => {
       figma.showUI(__html__);
       if (user.id === figma.currentUser?.id) {
-        figma.ui.postMessage({ type: "CHANGE_VIEW", payload: "EDIT_REVIEW", review: { text, rate, id } })
+        figma.ui.postMessage({ type: "CHANGE_VIEW", payload: "EDIT_REVIEW", review: { text, rate, id, anonymous } })
       }
     })}
   >
     <AutoLayout name="User Info" verticalAlignItems="center" spacing={12}>
-      <Image name="Avatar" src={user.photoUrl || ""} width={32} height={32} cornerRadius={100} />
+      {avatar}
       <AutoLayout name="Col" direction="vertical">
-        <Text name="Username" fontWeight={"bold"}>{user.name}</Text>
+        <Text name="Username" fontWeight={"bold"}>{anonymous ? "Anonymous User" : user.name}</Text>
         <AutoLayout name="Row" verticalAlignItems="center" spacing={4}>
           <Rate rate={rate} />
           <Text fontSize={12} fill={"#777"}>
@@ -71,7 +77,7 @@ function Widget() {
   const sum = reviews.length > 0 ? reviews.map(({ rate }) => rate).reduce((a, b) => a + b) : 0;
   const avg = reviews.length > 0 ? sum / reviews.length : 0;
 
-  const addReview = (text: string, rate: number) => {
+  const addReview = (text: string, rate: number, anonymous: boolean) => {
     const currentUser = figma.currentUser;
     if (currentUser) {
       setReviews(prev => [{
@@ -80,7 +86,8 @@ function Widget() {
         text,
         rate,
         edited: false,
-        timestamp: new Date().getTime()
+        timestamp: new Date().getTime(),
+        anonymous
       }, ...prev])
     }
   }
@@ -94,12 +101,28 @@ function Widget() {
     figma.ui.postMessage({ type: "CHANGE_VIEW", payload: "ADD_REVIEW" })
   })
 
+  const exportReviews = () => new Promise(() => {
+    figma.showUI(__html__, { visible: false })
+    figma.ui.postMessage({
+      type: "DOWNLOAD_DATA",
+      payload: reviews.map(
+        review => {
+          if (review.anonymous) {
+            return { ...review, user: {} }
+          } else {
+            return review
+          }
+        }
+      )
+    })
+  })
+
   useEffect(() => {
     figma.ui.onmessage = (msg) => {
       console.log(msg)
       if (msg.type === 'ADD_REVIEW') {
-        const { rate, text } = msg.payload
-        addReview(text, rate);
+        const { rate, text, anonymous } = msg.payload
+        addReview(text, rate, anonymous);
         figma.closePlugin();
 
       } else if (msg.type === 'DELETE_REVIEW') {
@@ -111,7 +134,7 @@ function Widget() {
         const newReviews = [...reviews];
         const index = reviews.findIndex(review => review.id === msg.payload.id);
         const review = reviews[index];
-        newReviews.splice(index, 1, { ...review, text: msg.payload.text, rate: msg.payload.rate, edited: true })
+        newReviews.splice(index, 1, { ...review, text: msg.payload.text, rate: msg.payload.rate, edited: true, anonymous: msg.payload.anonymous })
         setReviews(newReviews)
         figma.closePlugin()
       }
@@ -120,7 +143,7 @@ function Widget() {
 
   return (
     <AutoLayout name="Review" direction="vertical" padding={24} fill={"#fff"} spacing={12} width={"hug-contents"} cornerRadius={24}>
-      {displayTitle ? <Input value={title} onTextEditEnd={(e) => setTitle(e.characters)} placeholder={"Add Title..."} fontSize={32} /> : null}
+      {displayTitle ? <Input name="Title Input" value={title} onTextEditEnd={(e) => setTitle(e.characters)} placeholder={"Add Title..."} fontSize={32} inputFrameProps={{ name: "Input Container" }} /> : null}
       {/* <Rate /> */}
       <AutoLayout name="Overview" width={"hug-contents"} spacing={24}>
         <AutoLayout name="Overall Band" verticalAlignItems="center" spacing={4} fill={"#fff"} padding={8} width={"hug-contents"}>
@@ -138,11 +161,11 @@ function Widget() {
 
               return (
                 <AutoLayout name={`Percentage/${num}`} key={num} verticalAlignItems={"center"} spacing={8} width={"hug-contents"}>
-                  <Text name="Mark" fill={"#777"} fontSize={12} width={12} horizontalAlignText={"right"}>{num}</Text>
+                  <Text name="Mark" fill={"#777"} fontSize={12} width={12} >{num}</Text>
                   <AutoLayout name="Container" width={BAR_LENGTH} height={8} fill={"#eee"} cornerRadius={2}>
                     <Rectangle name="Bar" fill={"#FFC531"} height={"fill-parent"} width={length || 1} />
                   </AutoLayout>
-                  <Text fontSize={10} fill={"#aaa"} horizontalAlignText={"right"} italic>{(percentage * 100).toFixed(1)}%</Text>
+                  <Text fontSize={10} fill={"#aaa"} italic>{(percentage * 100).toFixed(1)}%</Text>
                 </AutoLayout>
               )
             })
@@ -150,11 +173,11 @@ function Widget() {
         </AutoLayout>
       </AutoLayout>
 
-      <Line stroke={"#ccc"} length={"fill-parent"} />
+      <Line name="Divider" stroke={"#ccc"} length={"fill-parent"} />
 
       <AutoLayout name="Review List" direction="vertical" spacing={8} width={"fill-parent"}>
         <AutoLayout name="Flex" width={"fill-parent"} verticalAlignItems={"center"} padding={{ left: 12 }}>
-          {reviews.length > 0 ? <Text width={"fill-parent"} fontWeight={"bold"}>All reviews ({reviews.length})</Text> : <Text name="Empty" fill={"#777"} width={"fill-parent"} horizontalAlignText="center">Click the button to add a review.</Text>}
+          {reviews.length > 0 ? <Text width={"fill-parent"} fontWeight={"bold"}>All reviews ({reviews.length})</Text> : <Text name="Empty" fill={"#777"} width={"fill-parent"}>Click the button to add a review.</Text>}
 
           <AutoLayout
             name="Button"
@@ -187,10 +210,7 @@ function Widget() {
               padding={{ vertical: 12, horizontal: 8 }}
               hoverStyle={{ fill: "#eee" }}
               spacing={4}
-              onClick={() => {
-                openUI({ visible: false })
-                figma.ui.postMessage({ type: "DOWNLOAD_DATA", payload: reviews })
-              }}
+              onClick={exportReviews}
             >
               <SVG src={download} width={14} height={14} />
               <Text fontSize={12} fill={"#777"}>Download data</Text>

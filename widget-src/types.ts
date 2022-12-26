@@ -5,4 +5,5 @@ export type Review = {
     user: User;
     edited: boolean;
     timestamp: number;
+    anonymous: boolean;
 }
