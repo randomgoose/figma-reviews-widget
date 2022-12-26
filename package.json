@@ -12,8 +12,11 @@
   "devDependencies": {
     "@figma/plugin-typings": "*",
     "@figma/widget-typings": "*",
+    "@types/lodash": "^4.14.191",
     "esbuild": "*",
     "typescript": "*"
   },
-  "dependencies": {}
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
 }

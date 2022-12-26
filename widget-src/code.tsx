@@ -1,9 +1,11 @@
 // This widget will open an Iframe window with buttons to show a toast message and close the window.
 
 const { widget } = figma
-const { useEffect, Text, AutoLayout, useSyncedState, SVG, Image, Rectangle, Line, Span, Input, usePropertyMenu, Frame } = widget
+const { useEffect, Text, AutoLayout, useSyncedState, SVG, Image, Rectangle, Line, Span, Input, usePropertyMenu } = widget
+import { Sorter } from "./components/sorter";
 import { download, member, plus, star, star_fill } from "./icons"
-import { Review as ReviewProps } from "./types"
+import { Review, Review as ReviewProps, Sort, SORT } from "./types"
+import _ from "lodash"
 
 const BAR_LENGTH = 320;
 
@@ -18,7 +20,7 @@ function Rate({ rate }: { rate: number }) {
 function Review({ user, text, rate, timestamp, id, edited, anonymous }: ReviewProps) {
   const d = new Date(timestamp);
   const date = d.toLocaleDateString();
-  const time = d.toLocaleTimeString()
+  const time = d.toLocaleTimeString();
 
   const avatar = anonymous ?
     <AutoLayout name="Anonymous Avatar" width={32} height={32} fill={"#777"} verticalAlignItems={"center"} horizontalAlignItems={"center"} cornerRadius={100}>
@@ -64,6 +66,7 @@ function Widget() {
   const [reviews, setReviews] = useSyncedState<ReviewProps[]>("reviews", []);
   const [title, setTitle] = useSyncedState<string>("title", "");
   const [displayTitle, setDisplayTitle] = useSyncedState<boolean>("display-title", true);
+  const [sortBy, setSortBy] = useSyncedState<Sort>("sort-by", "DESCENDING_BY_TIME");
 
   usePropertyMenu(
     [{ propertyName: "display-title", itemType: "toggle", tooltip: "Display Title", isToggled: displayTitle }],
@@ -76,6 +79,21 @@ function Widget() {
 
   const sum = reviews.length > 0 ? reviews.map(({ rate }) => rate).reduce((a, b) => a + b) : 0;
   const avg = reviews.length > 0 ? sum / reviews.length : 0;
+
+  const sortReviews = (reviews: Review[], { sort }: { sort: Sort }) => {
+    switch (sort) {
+      case "ASCENDING_BY_RATE":
+        return _.sortBy(reviews, d => d.rate)
+      case "DESCENDING_BY_RATE":
+        return _.sortBy(reviews, d => d.rate).reverse()
+      case "ASCENDING_BY_TIME":
+        return _.sortBy(reviews, d => d.timestamp)
+      case "DESCENDING_BY_TIME":
+        return _.sortBy(reviews, d => d.timestamp).reverse()
+      default:
+        return reviews
+    }
+  }
 
   const addReview = (text: string, rate: number, anonymous: boolean) => {
     const currentUser = figma.currentUser;
@@ -176,9 +194,14 @@ function Widget() {
 
       <Line name="Divider" stroke={"#ccc"} length={"fill-parent"} />
 
-      <AutoLayout name="Review List" direction="vertical" spacing={8} width={"fill-parent"}>
-        <AutoLayout name="Flex" width={"fill-parent"} verticalAlignItems={"center"} padding={{ left: 12 }}>
-          {reviews.length > 0 ? <Text width={"fill-parent"} fontWeight={"bold"}>All reviews ({reviews.length})</Text> : <Text name="Empty" fill={"#777"} width={"fill-parent"}>Click the button to add a review.</Text>}
+      <AutoLayout name="Review List" direction="vertical" spacing={8} width={"fill-parent"} overflow={"visible"}>
+        <AutoLayout name="Flex" width={"fill-parent"} verticalAlignItems={"center"} padding={{ left: 12 }} overflow={"visible"}>
+
+          <AutoLayout width={"fill-parent"} spacing={4} verticalAlignItems={"center"} overflow={"visible"}>
+            {reviews.length > 0 ? <Text fontWeight={"bold"}>All reviews ({reviews.length})</Text> : <Text name="Empty" fill={"#777"} width={"fill-parent"}>Click the button to add a review.</Text>}
+
+            <Sorter value={sortBy} onChange={(value: Sort) => setSortBy(value)} />
+          </AutoLayout>
 
           <AutoLayout
             name="Button"
@@ -189,14 +212,15 @@ function Widget() {
             verticalAlignItems={"center"}
             padding={{ vertical: 12, horizontal: 8 }}
             onClick={openAddReviewView}
-            hoverStyle={{ fill: "#eee" }}
+            hoverStyle={{ fill: "#eff6ff" }}
             spacing={4}
           >
             <SVG src={plus} width={14} height={14} />
-            <Text fontSize={12}>Add Review</Text>
+            <Text fontSize={12} fill={"#2563eb"}>Add Review</Text>
           </AutoLayout>
+
         </AutoLayout>
-        {reviews.map((review, index) => <Review {...review} key={index} />)}
+        {sortReviews(reviews, { sort: sortBy }).map((review, index) => <Review {...review} key={index} />)}
       </AutoLayout>
 
       {
