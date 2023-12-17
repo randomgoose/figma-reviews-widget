@@ -21,7 +21,7 @@ function Rate({ rate }: { rate: number }) {
 
 function Review({ user, text, rate, timestamp, id, edited, anonymous, lang }: ReviewProps & { lang: string }) {
   const d = new Date(timestamp);
-  const date = d.toLocaleDateString();
+  const date = d.toLocaleDateString(lang);
   const time = d.toLocaleTimeString();
 
   const avatar = anonymous ?
@@ -36,9 +36,11 @@ function Review({ user, text, rate, timestamp, id, edited, anonymous, lang }: Re
     direction="vertical" fill={"#fff"} padding={{ vertical: 12, horizontal: 12 }} spacing={8} cornerRadius={6}
     hoverStyle={{ fill: "#eeeeee" }}
     onClick={() => new Promise(() => {
-      figma.showUI(__html__);
       if (user.id === figma.currentUser?.id) {
+        figma.showUI(__html__);
         figma.ui.postMessage({ type: "CHANGE_VIEW", payload: "EDIT_REVIEW", review: { text, rate, id, anonymous } })
+      } else {
+        return figma.closePlugin()
       }
     })}
   >
@@ -57,7 +59,7 @@ function Review({ user, text, rate, timestamp, id, edited, anonymous, lang }: Re
 
     <AutoLayout name="Content" padding={{ left: 44 }} width={"fill-parent"}>
       <Text name="Text" width={"fill-parent"}>
-        {edited ? <Span fill={"#777"}>(Edited) </Span> : null}
+        {edited ? <Span fill={"#777"}>({translation['edited'][lang]}) </Span> : null}
         {text}
       </Text>
     </AutoLayout>
@@ -82,13 +84,13 @@ function Widget() {
         tooltip: translation["display"][lang],
         isToggled: displayTitle
       },
-      // {
-      //   propertyName: "language", itemType: "dropdown", tooltip: translation["lang"][lang],
-      //   options: [
-      //     { option: "zh-CN", label: "简体中文" },
-      //     { option: "en-US", label: "English" }
-      //   ], selectedOption: lang
-      // }
+      {
+        propertyName: "language", itemType: "dropdown", tooltip: translation["lang"][lang],
+        options: [
+          { option: "en-US", label: "English" },
+          { option: "zh-CN", label: "简体中文" },
+        ], selectedOption: lang
+      }
     ],
     (e) => {
       if (e.propertyName === "display-title") {
@@ -156,7 +158,7 @@ function Widget() {
       if (figma.currentUser?.id === hiddenBy.id) {
         setHidden(false)
       } else {
-        figma.notify(`You are not allowed to expose the reviews. Contact ${hiddenBy.name} for help.`);
+        figma.notify(translation['expose_not_allowed'][lang] + " " + hiddenBy.name + ".");
       }
     } else {
       setHidden(false)
@@ -186,7 +188,7 @@ function Widget() {
         const { rate, text, anonymous } = msg.payload
         addReview(text, rate, anonymous);
         if (hidden) {
-          figma.notify("Your review is submitted. It will be shown after the initiator exposes the reviews.")
+          figma.notify(translation['comment_when_hidden'][lang])
         }
         figma.closePlugin();
 
@@ -272,13 +274,15 @@ function Widget() {
                 <IconEyeSlash color={colors.neutral[500]} />
                 {hiddenBy ?
                   <Text fontSize={11} fill={colors.neutral[500]}>
-                    Reviews are hidden by {hiddenBy?.name || ''}.
+                    {translation['hidden_by'][lang]} {hiddenBy?.name || ''}.
                   </Text>
                   : <Text fontSize={11} fill={colors.neutral[500]}>
-                    Reviews are hidden.
+                    {translation['hidden'][lang]}
                   </Text>}
 
-                <Button variant="ghost" size="sm" colorScheme="blue" onClick={() => showReviews()}>Show Reviews</Button>
+                <Button variant="ghost" size="sm" colorScheme="blue" onClick={() => showReviews()}>
+                  {translation["expose"][lang]}
+                </Button>
               </AutoLayout>
             </AutoLayout>
         }
@@ -288,16 +292,22 @@ function Widget() {
         (reviews.length > 0 && !hidden)
           ? <AutoLayout overflow="visible" horizontalAlignItems={"end"} width={"fill-parent"}>
             <AutoLayout overflow="visible">
-              <Button name="Button" variant="ghost" onClick={exportReviews} size="sm" leftIcon={<IconArrowDownTray strokeWidth={1} />}>Download data</Button>
+              <Button name="Button" variant="ghost" onClick={exportReviews} size="sm" leftIcon={<IconArrowDownTray strokeWidth={1} />}>
+                {translation["download"][lang]}
+              </Button>
               <Menu id="visibility" placement="bottom-end">
                 <MenuTrigger>
                   <Button variant="ghost" size="sm" leftIcon={<IconEyeSlash />}>
-                    Hide reviews
+                    {translation["hide"][lang]}
                   </Button>
                 </MenuTrigger>
                 <MenuList width={96}>
-                  <MenuItem fontSize={11} onClick={() => hideReviews({ exposable: "INITIATOR" })}>Only I can expose reviews</MenuItem>
-                  <MenuItem fontSize={11} onClick={() => hideReviews({ exposable: "EVERYONE" })}>Everyone can expose reviews</MenuItem>
+                  <MenuItem fontSize={11} onClick={() => hideReviews({ exposable: "INITIATOR" })}>
+                    {translation["initiator_expose"][lang]}
+                  </MenuItem>
+                  <MenuItem fontSize={11} onClick={() => hideReviews({ exposable: "EVERYONE" })}>
+                    {translation["everyone_expose"][lang]}
+                  </MenuItem>
                 </MenuList>
               </Menu>
             </AutoLayout>
